@@ -79,13 +79,18 @@ async function main() {
     where: {
       email: "admin@erp.com",
     },
-    update: {},
+    update: {
+      password: passwordHash,
+      status: "ACTIVE",
+      isDeleted: false,
+    },
     create: {
       fullName: "Super Admin",
       email: "admin@erp.com",
       password: passwordHash,
       role: "SUPER_ADMIN",
       phone: "9999999998",
+      status: "ACTIVE",
       isDeleted: false,
     },
   });
@@ -324,8 +329,10 @@ async function main() {
    * SUBSCRIPTION PLANS
    * --------------------------------------------------------------------------
    */
-  const basicPlan = await prisma.subscriptionPlan.create({
-    data: {
+  const basicPlan = await prisma.subscriptionPlan.upsert({
+    where: { name: "Basic" },
+    update: {},
+    create: {
       name: "Basic",
       code: "BASIC",
       description: "Basic school management plan",
@@ -339,8 +346,10 @@ async function main() {
     },
   });
 
-  const premiumPlan = await prisma.subscriptionPlan.create({
-    data: {
+  const premiumPlan = await prisma.subscriptionPlan.upsert({
+    where: { name: "Premium" },
+    update: {},
+    create: {
       name: "Premium",
       code: "PREMIUM",
       description: "Complete school ERP plan",
@@ -355,12 +364,20 @@ async function main() {
   });
 
   for (const module of Object.values(modules)) {
-    await prisma.planModule.create({
-      data: {
+    const existing = await prisma.planModule.findFirst({
+      where: {
         planId: premiumPlan.id,
         moduleId: module.id,
       },
     });
+    if (!existing) {
+      await prisma.planModule.create({
+        data: {
+          planId: premiumPlan.id,
+          moduleId: module.id,
+        },
+      });
+    }
   }
 
   /*
