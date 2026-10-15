@@ -1,3 +1,4 @@
+```tsx
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -11,11 +12,20 @@ export const useSidebar = () => {
   const user = useAuthStore((state) => state.user);
   const collapsed = useSidebarStore((state) => state.collapsed);
   const mobileOpen = useSidebarStore((state) => state.mobileOpen);
-  const enabledFeatures = useSidebarStore((state) => state.enabledFeatures);
-  const featuresLoaded = useSidebarStore((state) => state.featuresLoaded);
+  const enabledFeatures = useSidebarStore(
+    (state) => state.enabledFeatures,
+  );
+  const featuresLoaded = useSidebarStore(
+    (state) => state.featuresLoaded,
+  );
+
   const initialize = useSidebarStore((state) => state.initialize);
-  const setEnabledFeatures = useSidebarStore((state) => state.setEnabledFeatures,);
-  const setFeaturesLoaded = useSidebarStore((state) => state.setFeaturesLoaded);
+  const setEnabledFeatures = useSidebarStore(
+    (state) => state.setEnabledFeatures,
+  );
+  const setFeaturesLoaded = useSidebarStore(
+    (state) => state.setFeaturesLoaded,
+  );
   const toggle = useSidebarStore((state) => state.toggle);
   const openMobile = useSidebarStore((state) => state.openMobile);
   const closeMobile = useSidebarStore((state) => state.closeMobile);
@@ -26,11 +36,13 @@ export const useSidebar = () => {
   }, [initialize]);
 
   useEffect(() => {
-    if (!user?.schoolId || user.role === "SUPER_ADMIN") {
+    if (!user?.role || user.role === "SUPER_ADMIN" || !user.schoolId) {
       return;
     }
 
     let cancelled = false;
+
+    setFeaturesLoaded(false);
 
     getSchoolEnabledModuleKeys()
       .then((features) => {
@@ -52,7 +64,12 @@ export const useSidebar = () => {
     return () => {
       cancelled = true;
     };
-  }, [setEnabledFeatures, setFeaturesLoaded, user]);
+  }, [
+    user?.schoolId,
+    user?.role,
+    setEnabledFeatures,
+    setFeaturesLoaded,
+  ]);
 
   const sidebarItems = useMemo(() => {
     if (!user?.role) {
@@ -65,30 +82,24 @@ export const useSidebar = () => {
       return items;
     }
 
-    const normalizedEnabledFeatures = enabledFeatures.map((feature) =>
-      feature.toUpperCase(),
+    const normalizedEnabledFeatures = new Set(
+      enabledFeatures.map((feature) => feature.toUpperCase()),
     );
 
-    // If features haven't loaded yet or are empty, show all items by default
-    if (!featuresLoaded || normalizedEnabledFeatures.length === 0) {
-      return items;
-    }
-
     return items.filter((item) => {
-      // Common modules always visible.
-      if (item.common) {
+      if (item.common || !item.moduleKey) {
         return true;
       }
 
-      // Module key nahi hai to visible rakho.
-      if (!item.moduleKey) {
-        return true;
+      if (!featuresLoaded) {
+        return false;
       }
 
-      // Sirf enabled school features visible.
-      return normalizedEnabledFeatures.includes(item.moduleKey.toUpperCase());
+      return normalizedEnabledFeatures.has(
+        item.moduleKey.toUpperCase(),
+      );
     });
-  }, [enabledFeatures, featuresLoaded, user]);
+  }, [user?.role, enabledFeatures, featuresLoaded]);
 
   return {
     user,
@@ -105,3 +116,4 @@ export const useSidebar = () => {
     toggleMobile,
   };
 };
+```
