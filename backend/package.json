@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec ts-node --files ./src/server.ts",
     "build": "prisma generate",
-    "start": "tsx src/server.ts"
+    "start": "npx tsx src/server.ts"
   },
   "keywords": [],
   "author": "",
