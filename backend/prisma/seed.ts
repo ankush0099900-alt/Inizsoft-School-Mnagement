@@ -2010,7 +2010,7 @@ async function main() {
   console.log("----------------------------------------");
   console.log("Admin");
   console.log("  Email:    admin@school.test");
-  console.log("  Password:  ");
+  console.log(`  Password: ${PASSWORD}`);
   console.log("");
   console.log("Teacher");
   console.log("  Email:    amit@school.test");

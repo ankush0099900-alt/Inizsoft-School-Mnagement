@@ -13,7 +13,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={cn("hidden lg: flex", "sticky top-0 h-screen", "border-r border-sidebar-border", "bg-sidebar text-sidebar-foreground", "transition-all duration-300 ease-in-out", "flex-col", collapsed ? "w-20" : "w-72",)}>
+      className={cn("hidden lg:flex", "sticky top-0 h-screen", "border-r border-sidebar-border", "bg-sidebar text-sidebar-foreground", "transition-all duration-300 ease-in-out", "flex-col", collapsed ? "w-20" : "w-72",)}>
       {/* Header: Akkhor Signature Golden-Amber Banner */}
 
       <div className="flex h-16 items-center justify-between bg-sidebar-primary text-white px-4 shrink-0 shadow-xs">
