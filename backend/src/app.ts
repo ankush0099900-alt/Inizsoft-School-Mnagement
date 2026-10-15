@@ -141,6 +141,30 @@ app.get("/readyz", (_req, res) => {
   });
 });
 
+app.get("/api/seed", async (_req, res) => {
+  try {
+    const { exec } = await import("child_process");
+    exec("npx tsx prisma/seed.ts", (err, stdout, stderr) => {
+      if (err) {
+        console.error("Seed error:", err);
+        return res.status(500).json({ success: false, error: err.message, stderr });
+      }
+      return res.status(200).json({
+        success: true,
+        message: "Database seeded successfully! You can now log in.",
+        credentials: {
+          superAdmin: { email: "admin@erp.com", password: "Password@123" },
+          schoolAdmin: { email: "admin@school.test", password: "Password@123" },
+          teacher: { email: "amit@school.test", password: "Password@123" },
+          student: { email: "aarav.student@school.test", password: "Password@123" },
+        },
+      });
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /**
  * Auth
  */
