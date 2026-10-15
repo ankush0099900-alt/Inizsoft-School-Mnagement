@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         port: "5000",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "https",
+        hostname: "inizsoft-school-mnagement.onrender.com",
+        pathname: "/uploads/**",
+      },
     ],
   },
 
