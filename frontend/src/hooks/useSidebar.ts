@@ -1,4 +1,4 @@
-```tsx
+
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -116,4 +116,4 @@ export const useSidebar = () => {
     toggleMobile,
   };
 };
-```
+
