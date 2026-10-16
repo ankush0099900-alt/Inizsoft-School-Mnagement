@@ -3,42 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  CalendarDays,
-  Clock,
-  GraduationCap,
-  LayoutGrid,
-  ListFilter,
-  Plus,
-  RefreshCw,
-  School,
-  Sparkles,
-} from "lucide-react";
+import { CalendarDays, Clock, GraduationCap, LayoutGrid, ListFilter, Plus, RefreshCw, School, } from "lucide-react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import TimetableDeleteDialog from "@/features/school/timetables/components/TimetableDeleteDialog";
 import TimetableFilters from "@/features/school/timetables/components/TimetableFilters";
 import TimetableTable from "@/features/school/timetables/components/TimetableTable";
 import TimetableScheduleView from "@/features/school/timetables/components/TimetableScheduleView";
 import PeriodModal from "@/features/school/timetables/components/PeriodModal";
-
-import {
-  useDeleteTimetable,
-  usePeriods,
-  useTimetables,
-} from "@/features/school/timetables/hooks/useTimetables";
-import type {
-  Timetable,
-  TimetableListParams,
-} from "@/features/school/timetables/types/timetables.types";
-
+import { useDeleteTimetable, usePeriods, useTimetables, } from "@/features/school/timetables/hooks/useTimetables";
+import type { Timetable, TimetableListParams, } from "@/features/school/timetables/types/timetables.types";
 import { useAcademicYears } from "@/features/school/academic-years/hooks/useAcademicYears";
-import {
-  useClasses,
-  useSections,
-} from "@/features/school/classes/hooks/useClasses";
+import { useClasses, useSections, } from "@/features/school/classes/hooks/useClasses";
 import { useSubjects } from "@/features/school/subjects/hooks/useSubjects";
 import { useTeachers } from "@/features/school/teachers/hooks/useTeachers";
 import { getErrorMessage } from "@/lib/error-message";
@@ -96,8 +72,7 @@ export default function TimetablesPage() {
 
   // Secondary Table Mode state & query
   const [tableFilters, setTableFilters] = useState<TimetableListParams>({
-    page: 1,
-    limit: PAGE_LIMIT,
+    page: 1, limit: PAGE_LIMIT,
   });
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingTimetable, setDeletingTimetable] = useState<Timetable | null>(null);

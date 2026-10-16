@@ -1,56 +1,66 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SubscriptionStats from "../components/SubscriptionStats";
 import SubscriptionTable from "../components/SubscriptionTable";
-import SubscriptionForm from "../components/SubscriptionForm";
 import RenewSubscriptionDialog from "../components/RenewSubscriptionDialog";
 import { useSubscriptions } from "../hooks/useSubscriptions";
 import Loader from "@/components/common/Loader";
 import ErrorPage from "@/components/common/error/ErrorPage";
 import Pagination from "@/components/tables/Pagination";
-import { useDeleteSubscription, } from "../hooks/useSubscriptionMutation";
+import { useDeleteSubscription } from "../hooks/useSubscriptionMutation";
 import { Subscription } from "../types/subscription";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
-
 
 export default function SubscriptionPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const page = Number(searchParams.get("page")) || 1;
     const limit = 10;
-    const { data, isLoading, isError, error, } = useSubscriptions(page, limit);
+    const { data, isLoading, isError, error } = useSubscriptions(page, limit);
 
-
-    const [openForm, setOpenForm] = useState(false);
     const [renewOpen, setRenewOpen] = useState(false);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription>();
     const deleteMutation = useDeleteSubscription();
     const subscriptions = data?.data ?? [];
     const pagination = data?.pagination;
 
-    const handleCreate = () => { setSelectedSubscription(undefined,); setOpenForm(true); };
-    const handleEdit = (subscription: Subscription,) => { setSelectedSubscription(subscription,); setOpenForm(true); };
-    const handleRenew = (subscription: Subscription,) => { setSelectedSubscription(subscription,); setRenewOpen(true); };
+    const handleCreate = () => {
+        router.push("/super-admin/subscriptions/new");
+    };
 
+    const handleEdit = (subscription: Subscription) => {
+        router.push(`/super-admin/subscriptions/${subscription.id}/edit`);
+    };
 
-    const handleDelete = async (subscription: Subscription,) => {
+    const handleRenew = (subscription: Subscription) => {
+        setSelectedSubscription(subscription);
+        setRenewOpen(true);
+    };
+
+    const handleView = (subscription: Subscription) => {
+        router.push(`/super-admin/subscriptions/${subscription.id}/edit`);
+    };
+
+    const handleDelete = async (subscription: Subscription) => {
         const schoolName = subscription.school?.name || "this school";
-        const confirmed = window.confirm(`Delete subscription for "${schoolName}"?`,);
-        if (!confirmed) { return; }
+        const confirmed = window.confirm(`Delete subscription for "${schoolName}"?`);
+        if (!confirmed) return;
         try {
-            await deleteMutation.mutateAsync(subscription.id,);
+            await deleteMutation.mutateAsync(subscription.id);
             toast.success("Subscription deleted successfully.");
         } catch {
             toast.error("Failed to delete subscription.");
         }
     };
 
-    const handleView = (subscription: Subscription,) => { setSelectedSubscription(subscription,); setOpenForm(true); };
-    const closeForm = () => { setSelectedSubscription(undefined,); setOpenForm(false); };
-    const closeRenewDialog = () => { setRenewOpen(false); setSelectedSubscription(undefined,); };
+    const closeRenewDialog = () => {
+        setRenewOpen(false);
+        setSelectedSubscription(undefined);
+    };
 
 
     if (isLoading) {
@@ -99,12 +109,6 @@ export default function SubscriptionPage() {
                 onEdit={handleEdit}
                 onRenew={handleRenew}
                 onDelete={handleDelete}
-            />
-
-            <SubscriptionForm
-                open={openForm}
-                onOpenChange={closeForm}
-                subscription={selectedSubscription}
             />
 
             <RenewSubscriptionDialog

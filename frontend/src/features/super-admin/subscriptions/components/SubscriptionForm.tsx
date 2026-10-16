@@ -158,10 +158,7 @@ export default function SubscriptionForm({ open, onOpenChange, subscription, sch
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-6"
                     >
-
                         <div className="grid gap-4 md:grid-cols-2">
-
-
                             {!schoolId && (
                                 <FormField
                                     control={form.control}

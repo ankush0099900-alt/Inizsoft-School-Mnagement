@@ -126,6 +126,12 @@ const superAdminSidebar: SidebarItem[] = [
     common: true,
   },
   {
+    title: "Billing & Invoices",
+    href: "/super-admin/billing",
+    icon: IndianRupee,
+    common: true,
+  },
+  {
     title: "Notifications",
     href: "/super-admin/notifications",
     icon: Bell,
@@ -325,6 +331,13 @@ const schoolAdminSidebar: SidebarItem[] = [
     icon: IndianRupee,
     section: "Finance & Accounts",
     moduleKey: "PAYMENTS",
+  },
+  {
+    title: "Subscription & Plan",
+    href: "/school-admin/subscription",
+    icon: CreditCard,
+    section: "Finance & Accounts",
+    common: true,
   },
 
   // 7. CAMPUS & CONNECT

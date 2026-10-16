@@ -18,7 +18,8 @@ const ROUTE_LABELS: Record<string, string> = {
   teacher: "Teacher",
   student: "Student",
   parent: "Parent",
-  dashboard: "Dashboard", "academic-years": "Academic Years",
+  dashboard: "Dashboard",
+  "academic-years": "Academic Years",
   admissions: "Admissions",
   classes: "Classes",
   sections: "Sections",
@@ -42,6 +43,8 @@ const ROUTE_LABELS: Record<string, string> = {
   schools: "Schools",
   plans: "Plans",
   subscriptions: "Subscriptions",
+  billing: "Billing",
+  transactions: "Transactions",
   analytics: "Analytics",
   "audit-logs": "Audit Logs",
   settings: "Settings",
@@ -78,7 +81,6 @@ function formatSegment(segment: string, previousSegment?: string): string {
 
   // Capitalize hyphenated words
   return segment.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-
 }
 
 export default function AppBreadcrumbs() {
@@ -100,10 +102,9 @@ export default function AppBreadcrumbs() {
   ].includes(firstSegment);
 
   const homeHref = isDashboardRoute ? `/${firstSegment}/dashboard` : "/";
+  const rootLabel = isDashboardRoute && ROUTE_LABELS[firstSegment] ? ROUTE_LABELS[firstSegment] : "Dashboard";
 
   // Build crumbs starting after role or from start
-  // E.g., for /school-admin/students/new -> crumbs: [students, new]
-  // With home crumb representing Dashboard
   let displaySegments: string[];
   let basePath: string;
 
@@ -122,13 +123,12 @@ export default function AppBreadcrumbs() {
           {/* Home / Dashboard Link */}
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href={homeHref}>
-                <Home className="h-3.5 w-3.5" />
-                <span>Dashboard</span>
+              <Link href={homeHref} className="flex items-center gap-1.5 font-medium hover:text-primary transition-colors">
+                <Home className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{rootLabel}</span>
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
-
 
           {/* Subsequent Crumb Items */}
           {displaySegments.map((segment, index) => {
@@ -139,11 +139,6 @@ export default function AppBreadcrumbs() {
             const previousSegment =
               index > 0 ? displaySegments[index - 1] : undefined;
             const label = formatSegment(segment, previousSegment);
-
-            // Skip rendering "dashboard" crumb if it's right after Home/Dashboard
-            if (segment.toLowerCase() === "dashboard" && index === 0) {
-              return null;
-            }
 
             return (
               <span key={currentPath} className="inline-flex items-center gap-1.5 sm:gap-2">

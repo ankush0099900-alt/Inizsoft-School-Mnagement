@@ -12,11 +12,9 @@ export default function Sidebar() {
   const { user, collapsed, toggle, sidebarItems } = useSidebar();
 
   return (
-    <aside
-      className={cn("hidden lg:flex", "sticky top-0 h-screen", "border-r border-sidebar-border", "bg-sidebar text-sidebar-foreground", "transition-all duration-300 ease-in-out", "flex-col", collapsed ? "w-20" : "w-72",)}>
-      {/* Header: Akkhor Signature Golden-Amber Banner */}
-
-      <div className="flex h-16 items-center justify-between bg-sidebar-primary text-white px-4 shrink-0 shadow-xs">
+    <aside className={cn("hidden lg:flex", "sticky top-0 h-screen", "border-r border-sidebar-border", "bg-sidebar text-sidebar-foreground", "transition-all duration-300 ease-in-out", "flex-col", collapsed ? "w-20" : "w-72",)}>
+      {/* Header:  Banner */}
+      <div className="flex h-16 items-center justify-between bg-sidebar-primary text-white px-2 shrink-0 shadow-xs">
         {!collapsed ? (
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white shadow-inner">
@@ -32,9 +30,7 @@ export default function Sidebar() {
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white">
-            <GraduationCap size={20} className="text-white" />
-          </div>
+          ''
         )}
 
         <button
@@ -43,13 +39,7 @@ export default function Sidebar() {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="cursor-pointer rounded-lg p-1.5 transition-colors hover:bg-black/10 text-white"
         >
-          <Menu
-            size={18}
-            className={cn(
-              "transition-transform duration-300",
-              collapsed && "rotate-90",
-            )}
-          />
+          <Menu size={18} className={cn("transition-transform duration-300", collapsed && "rotate-90",)} />
         </button>
       </div>
 
@@ -60,27 +50,14 @@ export default function Sidebar() {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const prevItem = index > 0 ? sidebarItems[index - 1] : null;
-            const showSection = item.section && (!prevItem || prevItem.section !== item.section);
 
             return (
               <div key={item.href} className="space-y-1">
-                {/* {showSection && (
-                  !collapsed ? (
-                    <div className={cn("px-3", index === 0 ? "pb-1 pt-1" : "pb-1 pt-4")}>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        {item.section}
-                      </p>
-                    </div>
-                  ) : (
-                    index > 0 && <div className="my-2 border-t border-sidebar-border" />
-                  )
-                )} */}
-
                 <Link
                   href={item.href}
                   className={cn(
                     "group relative flex cursor-pointer items-center rounded-xl transition-all duration-200",
-                    collapsed ? "justify-center px-3 py-2.5" : "gap-3 px-3.5 py-2.5",
+                    collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-2 py-2.5",
                     active
                       ? "bg-white/10 text-white font-semibold border-sidebar-primary shadow-xs"
                       : "text-slate-200 hover:bg-white/5 hover:text-white font-medium",

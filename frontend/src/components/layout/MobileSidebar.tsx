@@ -2,28 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+<<<<<<< HEAD
 import { GraduationCap, ChevronRight, X } from "lucide-react";
 
+=======
+import { X } from "lucide-react";
+>>>>>>> d2c4d6ae (chore: prepare project for Vercel and Render deployment)
 import { useSidebar } from "@/hooks/useSidebar";
 import { cn } from "@/lib/utils";
 
 export default function MobileSidebar() {
   const pathname = usePathname();
+  const { user, mobileOpen, closeMobile, sidebarItems, } = useSidebar();
 
-  const {
-    user,
-    mobileOpen,
-    closeMobile,
-    sidebarItems,
-  } = useSidebar();
 
+<<<<<<< HEAD
   const displayRole =
     user?.role?.replaceAll("_", " ") ?? "SCHOOL ERP";
+=======
+  const displayRole = user?.role?.replaceAll("_", " ") ?? "USER";
+>>>>>>> d2c4d6ae (chore: prepare project for Vercel and Render deployment)
 
   const displayName = user?.fullName ?? "Admin User";
 
+<<<<<<< HEAD
   const avatarLetter =
     displayName.charAt(0).toUpperCase() || "A";
+=======
+  const avatarLetter = displayName.charAt(0).toUpperCase() || "U";
+>>>>>>> d2c4d6ae (chore: prepare project for Vercel and Render deployment)
 
   return (
     <>
@@ -45,6 +52,7 @@ export default function MobileSidebar() {
           "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col",
           "border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
           "transition-transform duration-300 ease-in-out",
+<<<<<<< HEAD
           "lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
@@ -62,6 +70,21 @@ export default function MobileSidebar() {
               </span>
 
               <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-white/80">
+=======
+          "lg:hidden", mobileOpen
+          ? "translate-x-0"
+          : "-translate-x-full",
+        )}
+      >
+        {/* Header: Banner */}
+        <div className="flex h-16 items-center justify-between bg-sidebar-primary text-white px-4 shrink-0 shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-black tracking-wider text-xl text-white uppercase">INIZSOFT</span>
+              </div>
+              <p className="text-[10px] font-semibold tracking-wider text-white/80 uppercase truncate">
+>>>>>>> d2c4d6ae (chore: prepare project for Vercel and Render deployment)
                 {displayRole}
               </p>
             </div>
@@ -86,6 +109,7 @@ export default function MobileSidebar() {
               const active =
                 pathname === item.href ||
                 pathname.startsWith(`${item.href}/`);
+<<<<<<< HEAD
 
               const prevItem =
                 index > 0 ? sidebarItems[index - 1] : null;
@@ -111,6 +135,12 @@ export default function MobileSidebar() {
                   )}
 
                   {/* Navigation Link */}
+=======
+              const prevItem = index > 0 ? sidebarItems[index - 1] : null;
+
+              return (
+                <div key={item.href} className="space-y-1">
+>>>>>>> d2c4d6ae (chore: prepare project for Vercel and Render deployment)
                   <Link
                     href={item.href}
                     onClick={closeMobile}
@@ -119,8 +149,13 @@ export default function MobileSidebar() {
                       "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5",
                       "transition-all duration-200",
                       active
+<<<<<<< HEAD
                         ? "bg-white/10 font-semibold text-white shadow-xs"
                         : "font-medium text-slate-200 hover:bg-white/5 hover:text-white",
+=======
+                        ? "bg-white/10 text-white font-semibold border-sidebar-primary shadow-xs"
+                        : "text-slate-200 hover:bg-white/5 hover:text-white font-medium",
+>>>>>>> d2c4d6ae (chore: prepare project for Vercel and Render deployment)
                     )}
                   >
                     <Icon

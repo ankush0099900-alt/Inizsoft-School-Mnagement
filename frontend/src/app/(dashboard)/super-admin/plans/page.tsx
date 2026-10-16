@@ -1,37 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Layers, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Loader from "@/components/common/Loader";
 import PlanStats from "@/features/super-admin/plans/components/PlanStats";
 import PlanCard from "@/features/super-admin/plans/components/PlanCard";
-import PlanFormDialog from "@/features/super-admin/plans/components/PlanFormDialog";
 import {
   usePlanMutations,
   usePlans,
 } from "@/features/super-admin/plans/hooks/usePlans";
 import { useSearchStore } from "@/store/search.store";
 import {
-  CreatePlanDto,
   SubscriptionPlan,
-  UpdatePlanDto,
 } from "@/features/super-admin/plans/types/plan.types";
 
 export default function PlansPage() {
+  const router = useRouter();
   const search = useSearchStore((state) => state.search);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [planToEdit, setPlanToEdit] = useState<SubscriptionPlan | null>(null);
 
   const { data, isLoading, error, refetch } = usePlans(1, 50, search);
   const {
-    createPlan,
-    updatePlan,
     toggleStatus,
     deletePlan,
-    isCreating,
-    isUpdating,
     isTogglingStatus,
   } = usePlanMutations();
 
@@ -39,21 +31,11 @@ export default function PlansPage() {
   const total = data?.pagination?.total ?? plans.length;
 
   const handleCreate = () => {
-    setPlanToEdit(null);
-    setDialogOpen(true);
+    router.push("/super-admin/plans/new");
   };
 
   const handleEdit = (plan: SubscriptionPlan) => {
-    setPlanToEdit(plan);
-    setDialogOpen(true);
-  };
-
-  const handleSubmit = async (formData: CreatePlanDto | UpdatePlanDto) => {
-    if (planToEdit) {
-      await updatePlan({ id: planToEdit.id, data: formData });
-    } else {
-      await createPlan(formData as CreatePlanDto);
-    }
+    router.push(`/super-admin/plans/${plan.id}/edit`);
   };
 
   return (
@@ -155,15 +137,6 @@ export default function PlansPage() {
           ))}
         </div>
       )}
-
-      {/* Create / Edit Dialog */}
-      <PlanFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        planToEdit={planToEdit}
-        onSubmit={handleSubmit}
-        isLoading={isCreating || isUpdating}
-      />
     </div>
   );
 }
