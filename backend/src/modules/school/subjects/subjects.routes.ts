@@ -25,21 +25,41 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", validateQuery(subjectQuerySchema), getSubjects);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  validateQuery(subjectQuerySchema),
+  getSubjects,
+);
 
-router.get("/:id", validateParams(subjectParamsSchema), getSubjectById);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  validateParams(subjectParamsSchema),
+  getSubjectById,
+);
 
-router.post("/", validate(createSubjectSchema), createSubject);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN"),
+  validate(createSubjectSchema),
+  createSubject,
+);
 
 router.patch(
   "/:id",
+  authorize("SCHOOL_ADMIN"),
   validateParams(subjectParamsSchema),
   validate(updateSubjectSchema),
   updateSubject,
 );
 
-router.delete("/:id", validateParams(subjectParamsSchema), deleteSubject);
+router.delete(
+  "/:id",
+  authorize("SCHOOL_ADMIN"),
+  validateParams(subjectParamsSchema),
+  deleteSubject,
+);
 
 export default router;

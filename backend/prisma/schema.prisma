@@ -66,8 +66,11 @@ model School {
   teachers              Teacher[]
   timetables            Timetable[]
   users                 User[]
-  students              Student[]
-  admissionSequence Int @default(0)
+  students                  Student[]
+  admissionSequence         Int                        @default(0)
+  subscriptionTransactions  SubscriptionTransaction[]
+  paymentConfig             SchoolPaymentConfig?
+  teacherSubjectAllocations TeacherSubjectAllocation[]
 
   @@index([ownerId])
   @@index([code])
@@ -106,6 +109,8 @@ model User {
   ownerOfSchool         School?                @relation("SchoolOwner")
   userRoles             UserRole[]
   notificationReads     NotificationRead[]
+  reviewedTransactions  SubscriptionTransaction[] @relation("TransactionReviewer")
+  paymentSettingsUpdated PlatformPaymentSetting[] @relation("PaymentSettingsUpdater")
 
   @@index([schoolId])
   @@index([status])
@@ -176,8 +181,9 @@ model SubscriptionPlan {
   isActive       Boolean        @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  modules        PlanModule[]
-  subscriptions  Subscription[]
+  modules                  PlanModule[]
+  subscriptions            Subscription[]
+  subscriptionTransactions SubscriptionTransaction[]
 }
 
 model PlanModule {
@@ -192,20 +198,21 @@ model PlanModule {
 }
 
 model Subscription {
-  id          String             @id @default(uuid())
-  schoolId    String
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  planId      String
-  status      SubscriptionStatus
-  amount      Decimal            @default(0) @db.Decimal(12, 2)
-  discount    Decimal            @default(0) @db.Decimal(12, 2)
-  finalAmount Decimal            @default(0) @db.Decimal(12, 2)
-  tax         Decimal            @default(0) @db.Decimal(12, 2)
-  plan        SubscriptionPlan   @relation(fields: [planId], references: [id])
-  school      School             @relation(fields: [schoolId], references: [id])
+  id           String                    @id @default(uuid())
+  schoolId     String
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  planId       String
+  status       SubscriptionStatus
+  amount       Decimal                   @default(0) @db.Decimal(12, 2)
+  discount     Decimal                   @default(0) @db.Decimal(12, 2)
+  finalAmount  Decimal                   @default(0) @db.Decimal(12, 2)
+  tax          Decimal                   @default(0) @db.Decimal(12, 2)
+  plan         SubscriptionPlan          @relation(fields: [planId], references: [id])
+  school       School                    @relation(fields: [schoolId], references: [id])
+  transactions SubscriptionTransaction[]
 
   @@index([schoolId])
   @@index([status])
@@ -278,9 +285,10 @@ model Class {
   school                School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classTeacher          Teacher?               @relation("ClassTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
   notificationAudiences NotificationAudience[]
-  sections              Section[]
-  timetables             Timetable[]
-  enrollments            Enrollment[]
+  sections                  Section[]
+  timetables                Timetable[]
+  enrollments               Enrollment[]
+  teacherSubjectAllocations TeacherSubjectAllocation[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -288,40 +296,42 @@ model Class {
 }
 
 model Teacher {
-  id              String      @id @default(uuid())
-  schoolId        String
-  userId          String      @unique
-  employeeId      String
-  qualification   String?
-  experienceYears Int?
-  designation     String?
-  address         String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  joiningDate     DateTime?
-  school          School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  classes         Class[]     @relation("ClassTeacher")
-  timetables      Timetable[]
-  subjects        Subject[]   @relation("TeacherSubjects")
+  id                        String                     @id @default(uuid())
+  schoolId                  String
+  userId                    String                     @unique
+  employeeId                String
+  qualification             String?
+  experienceYears           Int?
+  designation               String?
+  address                   String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  joiningDate               DateTime?
+  school                    School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user                      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes                   Class[]                    @relation("ClassTeacher")
+  timetables                Timetable[]
+  subjects                  Subject[]                  @relation("TeacherSubjects")
+  teacherSubjectAllocations TeacherSubjectAllocation[]
 
   @@unique([schoolId, employeeId])
   @@index([schoolId])
 }
 
 model Section {
-  id                    String                 @id @default(uuid())
-  schoolId              String
-  classId               String
-  name                  String
-  capacity              Int?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  notificationAudiences NotificationAudience[]
-  class                 Class                  @relation(fields: [classId], references: [id], onDelete: Cascade)
-  school                School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  timetables            Timetable[]
-  enrollments           Enrollment[]
+  id                        String                     @id @default(uuid())
+  schoolId                  String
+  classId                   String
+  name                      String
+  capacity                  Int?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  notificationAudiences     NotificationAudience[]
+  class                     Class                      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  school                    School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetables                Timetable[]
+  enrollments               Enrollment[]
+  teacherSubjectAllocations TeacherSubjectAllocation[]
 
   @@unique([classId, name])
   @@index([schoolId])
@@ -391,8 +401,9 @@ model Subject {
   description String?
   results     Result[]
   school      School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  timetables  Timetable[]
-  teachers    Teacher[]   @relation("TeacherSubjects")
+  timetables                Timetable[]
+  teachers                  Teacher[]                  @relation("TeacherSubjects")
+  teacherSubjectAllocations TeacherSubjectAllocation[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -1389,3 +1400,140 @@ enum UserStatus {
   INACTIVE
   SUSPENDED
 }
+
+// ==========================================
+// BILLING & TRANSACTION AUDIT LEDGER
+// ==========================================
+
+enum TransactionStatus {
+  PENDING
+  UNDER_REVIEW
+  COMPLETED
+  FAILED
+  REJECTED
+  REFUNDED
+}
+
+enum SubscriptionOperation {
+  PURCHASE
+  RENEW
+  UPGRADE
+}
+
+enum PaymentChannel {
+  ONLINE_RAZORPAY
+  ONLINE_STRIPE
+  MANUAL_BANK_TRANSFER
+  MANUAL_UPI
+  MANUAL_CHEQUE
+  MANUAL_CASH
+}
+
+model SubscriptionTransaction {
+  id                   String                @id @default(uuid())
+  schoolId             String
+  subscriptionId       String?
+  planId               String
+  operation            SubscriptionOperation @default(PURCHASE)
+  amount               Decimal               @db.Decimal(12, 2)
+  currency             String                @default("INR")
+  status               TransactionStatus     @default(PENDING)
+  channel              PaymentChannel
+  paymentDate          DateTime              @default(now())
+
+  // Online Gateway References
+  gatewayOrderId       String?               @unique
+  gatewayPaymentId     String?               @unique
+  gatewaySignature     String?
+
+  // Manual Payment References
+  transactionReference String?
+  proofDocumentUrl     String?
+  reviewedById         String?
+  reviewNotes          String?
+  rejectionReason      String?
+  reviewedAt           DateTime?
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  school               School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  plan                 SubscriptionPlan      @relation(fields: [planId], references: [id])
+  subscription         Subscription?         @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  reviewedBy           User?                 @relation("TransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([channel])
+  @@index([operation])
+  @@index([transactionReference])
+  @@index([createdAt])
+}
+
+model PlatformPaymentSetting {
+  id                  String    @id @default(uuid())
+  beneficiaryName     String
+  upiId               String
+  qrCodeUrl           String?
+  bankName            String
+  accountNumber       String
+  ifscCode            String
+  accountType         String?   @default("CURRENT")
+  branchName          String?
+  paymentInstructions String?
+  isActive            Boolean   @default(true)
+  updatedById         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  updatedBy           User?     @relation("PaymentSettingsUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("platform_payment_settings")
+}
+
+// ==========================================
+// TEACHER SUBJECT ALLOCATION
+// ==========================================
+
+model TeacherSubjectAllocation {
+  id         String   @id @default(uuid())
+  schoolId   String
+  teacherId  String
+  classId    String
+  sectionId  String?
+  subjectId  String
+  createdAt  DateTime @default(now())
+
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher    Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section    Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, classId, sectionId, subjectId])
+  @@index([schoolId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+// ==========================================
+// SCHOOL PAYMENT GATEWAY CONFIGURATION
+// ==========================================
+
+model SchoolPaymentConfig {
+  id             String   @id @default(uuid())
+  schoolId       String   @unique
+  provider       String   // "RAZORPAY" | "STRIPE"
+  keyId          String
+  keySecretEnc   String   // AES-256 encrypted secret
+  webhookSecret  String?
+  isActive       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+

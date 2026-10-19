@@ -5,6 +5,7 @@ export interface Transaction {
   schoolId: string;
   subscriptionId?: string | null;
   planId: string;
+  operation: "PURCHASE" | "RENEW" | "UPGRADE";
   amount: number | string;
   currency: string;
   status: "PENDING" | "UNDER_REVIEW" | "COMPLETED" | "FAILED" | "REJECTED" | "REFUNDED";
@@ -15,11 +16,13 @@ export interface Transaction {
     | "MANUAL_UPI"
     | "MANUAL_CHEQUE"
     | "MANUAL_CASH";
+  paymentDate?: string;
   gatewayOrderId?: string | null;
   gatewayPaymentId?: string | null;
   transactionReference?: string | null;
   proofDocumentUrl?: string | null;
   reviewNotes?: string | null;
+  rejectionReason?: string | null;
   reviewedAt?: string | null;
   createdAt: string;
   school?: {
@@ -61,6 +64,21 @@ export interface BillingStats {
   recentTransactions: Transaction[];
 }
 
+export interface PlatformPaymentSetting {
+  id?: string;
+  beneficiaryName: string;
+  upiId: string;
+  qrCodeUrl?: string | null;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountType?: string;
+  branchName?: string;
+  paymentInstructions?: string;
+  isActive: boolean;
+  updatedAt?: string;
+}
+
 export async function getBillingStats(): Promise<BillingStats> {
   const { data } = await api.get("/super-admin/billing/stats");
   return data.data;
@@ -72,6 +90,7 @@ export async function getTransactions(params: {
   search?: string;
   status?: string;
   channel?: string;
+  operation?: string;
   schoolId?: string;
 }): Promise<{ transactions: Transaction[]; meta: { page: number; limit: number; total: number; totalPages: number } }> {
   const { data } = await api.get("/super-admin/billing/transactions", { params });
@@ -91,7 +110,26 @@ export async function approveTransaction(id: string, notes?: string): Promise<Tr
   return data.data;
 }
 
-export async function rejectTransaction(id: string, reason?: string): Promise<Transaction> {
+export async function rejectTransaction(id: string, reason: string): Promise<Transaction> {
   const { data } = await api.patch(`/super-admin/billing/transactions/${id}/reject`, { reason });
   return data.data;
+}
+
+export async function getPlatformPaymentSettings(): Promise<PlatformPaymentSetting | null> {
+  const { data } = await api.get("/super-admin/billing/settings");
+  return data.data;
+}
+
+export async function updatePlatformPaymentSettings(
+  payload: Partial<PlatformPaymentSetting>,
+): Promise<PlatformPaymentSetting> {
+  const { data } = await api.put("/super-admin/billing/settings", payload);
+  return data.data;
+}
+
+export async function uploadQrCode(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("qrCode", file);
+  const { data } = await api.post("/super-admin/billing/upload-qr", formData);
+  return data.data.url;
 }

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.middleware";
 import { tenantMiddleware } from "../../../middleware/tenant.middleware";
 import { authorize } from "../../../middleware/rbac.middleware";
+import { featureGuard } from "../../../middleware/feature.middleware";
 import { validate } from "../../../middleware/validate.middleware";
 
 import {
@@ -21,20 +22,34 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
+router.use(featureGuard("ATTENDANCE"));
 
-router.get("/", getAttendanceController);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "PARENT", "STUDENT"),
+  getAttendanceController,
+);
 
-router.get("/:id", getAttendanceByIdController);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "PARENT", "STUDENT"),
+  getAttendanceByIdController,
+);
 
-router.post("/", validate(createAttendanceSchema), createAttendanceController);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER"),
+  validate(createAttendanceSchema),
+  createAttendanceController,
+);
 
 router.patch(
   "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER"),
   validate(updateAttendanceSchema),
   updateAttendanceController,
 );
 
-router.delete("/:id", deleteAttendanceController);
+router.delete("/:id", authorize("SCHOOL_ADMIN"), deleteAttendanceController);
 
 export default router;

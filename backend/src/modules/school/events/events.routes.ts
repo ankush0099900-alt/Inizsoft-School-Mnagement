@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.middleware";
 import { tenantMiddleware } from "../../../middleware/tenant.middleware";
 import { authorize } from "../../../middleware/rbac.middleware";
+import { featureGuard } from "../../../middleware/feature.middleware";
 import { validate } from "../../../middleware/validate.middleware";
 
 import {
@@ -18,16 +19,34 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
+router.use(featureGuard("EVENTS"));
 
-router.get("/", getEventsController);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getEventsController,
+);
 
-router.get("/:id", getEventByIdController);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getEventByIdController,
+);
 
-router.post("/", validate(createEventSchema), createEventController);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN"),
+  validate(createEventSchema),
+  createEventController,
+);
 
-router.patch("/:id", validate(updateEventSchema), updateEventController);
+router.patch(
+  "/:id",
+  authorize("SCHOOL_ADMIN"),
+  validate(updateEventSchema),
+  updateEventController,
+);
 
-router.delete("/:id", deleteEventController);
+router.delete("/:id", authorize("SCHOOL_ADMIN"), deleteEventController);
 
 export default router;

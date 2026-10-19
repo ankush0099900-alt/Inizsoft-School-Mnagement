@@ -30,7 +30,7 @@ export interface Teacher {
   updatedAt: string;
   user: TeacherUser;
   subjects: TeacherSubject[];
-  _count: {
+  _count?: {
     timetables: number;
   };
 }
@@ -45,4 +45,31 @@ export interface TeacherResponse {
   success: boolean;
   message: string;
   data: Teacher;
+}
+
+export interface CreateTeacherInput {
+  fullName: string;
+  email: string;
+  password?: string;
+  phone?: string | null;
+  employeeId: string;
+  qualification?: string | null;
+  experienceYears?: number | null;
+  designation?: string | null;
+  address?: string | null;
+  joiningDate?: string | null;
+  subjectIds?: string[];
+}
+
+export interface UpdateTeacherInput {
+  fullName?: string;
+  email?: string;
+  phone?: string | null;
+  employeeId?: string;
+  qualification?: string | null;
+  experienceYears?: number | null;
+  designation?: string | null;
+  address?: string | null;
+  joiningDate?: string | null;
+  subjectIds?: string[];
 }

@@ -1,8 +1,8 @@
-import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { RoleEnum } from "@prisma/client";
 import { prisma } from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
+import { comparePassword } from "../../utils/bcrypt";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -72,7 +72,7 @@ export const loginUser = async (data: LoginInput, auditData?: AuditData) => {
     throw new ApiError(403, "School account is suspended");
   }
 
-  const passwordMatched = await bcrypt.compare(data.password, user.password);
+  const passwordMatched = await comparePassword(data.password, user.password);
 
   if (!passwordMatched) {
     const failedLogins = user.failedLogins + 1;

@@ -17,6 +17,10 @@ import {
   ShieldCheck,
   Building2,
   FileText,
+  Settings,
+  Calendar,
+  Layers,
+  HelpCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,18 +37,22 @@ import {
   rejectTransaction,
   type Transaction,
 } from "../api/billing.api";
+import { getImageUrl } from "@/lib/image-url";
+import PaymentSettingsTab from "./PaymentSettingsTab";
 
 export default function BillingDashboard() {
-  const queryClient = useClient();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("queue");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [operationFilter, setOperationFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
 
-  // Modal states for approval/rejection
+  // Modal states for approval/rejection/details
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [actionNotes, setActionNotes] = useState("");
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null);
 
   // 1. Stats Query
   const { data: stats, isLoading: loadingStats } = useQuery({
@@ -60,13 +68,22 @@ export default function BillingDashboard() {
 
   // 3. All Transactions Query
   const { data: txResponse, isLoading: loadingTx } = useQuery({
-    queryKey: ["super-admin", "billing", "transactions", page, search, statusFilter],
+    queryKey: [
+      "super-admin",
+      "billing",
+      "transactions",
+      page,
+      search,
+      statusFilter,
+      operationFilter,
+    ],
     queryFn: () =>
       getTransactions({
         page,
         limit: 10,
         search: search || undefined,
         status: statusFilter === "ALL" ? undefined : statusFilter,
+        operation: operationFilter === "ALL" ? undefined : operationFilter,
       }),
   });
 
@@ -77,12 +94,15 @@ export default function BillingDashboard() {
   const approveMutation = useMutation({
     mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
       approveTransaction(id, notes),
-    onSuccess: () => {
-      toast.success("Payment approved and subscription activated!");
+    onSuccess: (updated) => {
+      toast.success(
+        `Payment approved! ${updated.plan?.name || "Plan"} activated for ${updated.school?.name}.`,
+      );
       queryClient.invalidateQueries({ queryKey: ["super-admin", "billing"] });
       setSelectedTx(null);
       setActionType(null);
       setActionNotes("");
+      if (detailTx?.id === updated.id) setDetailTx(null);
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed to approve payment");
@@ -90,23 +110,20 @@ export default function BillingDashboard() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       rejectTransaction(id, reason),
     onSuccess: () => {
-      toast.success("Payment transaction rejected");
+      toast.success("Payment request marked as rejected.");
       queryClient.invalidateQueries({ queryKey: ["super-admin", "billing"] });
       setSelectedTx(null);
       setActionType(null);
       setActionNotes("");
+      if (detailTx) setDetailTx(null);
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed to reject payment");
     },
   });
-
-  function useClient() {
-    return useQueryClient();
-  }
 
   const handleOpenAction = (tx: Transaction, type: "approve" | "reject") => {
     setSelectedTx(tx);
@@ -119,6 +136,10 @@ export default function BillingDashboard() {
     if (actionType === "approve") {
       approveMutation.mutate({ id: selectedTx.id, notes: actionNotes });
     } else {
+      if (!actionNotes.trim()) {
+        toast.error("Rejection reason is required");
+        return;
+      }
       rejectMutation.mutate({ id: selectedTx.id, reason: actionNotes });
     }
   };
@@ -126,14 +147,56 @@ export default function BillingDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "COMPLETED":
-        return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Completed</Badge>;
+        return (
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+            Approved & Active
+          </Badge>
+        );
       case "PENDING":
-        return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">Pending Review</Badge>;
+        return (
+          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+            Verification Pending
+          </Badge>
+        );
       case "REJECTED":
+        return (
+          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30">
+            Rejected
+          </Badge>
+        );
       case "FAILED":
-        return <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30">{status}</Badge>;
+        return (
+          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30">
+            Failed
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getOperationBadge = (operation?: string) => {
+    switch (operation) {
+      case "PURCHASE":
+        return (
+          <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-300 dark:text-blue-400 text-[11px]">
+            New Purchase
+          </Badge>
+        );
+      case "RENEW":
+        return (
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-400 text-[11px]">
+            Renewal
+          </Badge>
+        );
+      case "UPGRADE":
+        return (
+          <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-300 dark:text-purple-400 text-[11px]">
+            Plan Upgrade
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline" className="text-[11px]">{operation || "PURCHASE"}</Badge>;
     }
   };
 
@@ -145,9 +208,9 @@ export default function BillingDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing & Transactions</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Manual Subscription Billing</h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          Manage subscription billing, verify offline payments, and track revenue across schools.
+          Verify offline school subscription payments, manage manual payment bank details, and track revenue.
         </p>
       </div>
 
@@ -164,13 +227,13 @@ export default function BillingDashboard() {
             <div className="text-2xl font-bold">
               ₹{Number(stats?.totalRevenue ?? 0).toLocaleString("en-IN")}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">From all completed subscription payments</p>
+            <p className="text-xs text-muted-foreground mt-1">From all approved subscription payments</p>
           </CardContent>
         </Card>
 
         <Card className="border border-border/60 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Approvals</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Requests</CardTitle>
             <div className="h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
               <Clock className="h-5 w-5" />
             </div>
@@ -179,7 +242,7 @@ export default function BillingDashboard() {
             <div className="text-2xl font-bold text-amber-600">
               {stats?.pendingReviewsCount ?? 0}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Manual bank & UPI payments awaiting review</p>
+            <p className="text-xs text-muted-foreground mt-1">Manual bank & UPI payments awaiting verification</p>
           </CardContent>
         </Card>
 
@@ -200,7 +263,7 @@ export default function BillingDashboard() {
 
         <Card className="border border-border/60 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Invoices</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Requests</CardTitle>
             <div className="h-9 w-9 rounded-lg bg-sky-500/10 text-sky-600 flex items-center justify-center">
               <CreditCard className="h-5 w-5" />
             </div>
@@ -209,14 +272,14 @@ export default function BillingDashboard() {
             <div className="text-2xl font-bold">
               {stats?.totalTransactionsCount ?? 0}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Processed transactions to date</p>
+            <p className="text-xs text-muted-foreground mt-1">Total payment submissions recorded</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs Section */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 w-full">
-        <TabsList className="bg-muted/70 p-1 rounded-xl ">
+        <TabsList className="bg-muted/70 p-1 rounded-xl">
           <TabsTrigger value="queue" className="rounded-lg gap-2">
             <span>Pending Review Queue</span>
             {reviewQueue.length > 0 && (
@@ -225,8 +288,12 @@ export default function BillingDashboard() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="all" className="rounded-lg w-full">
-            All Transactions
+          <TabsTrigger value="all" className="rounded-lg">
+            All Payment Requests
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="rounded-lg gap-1.5">
+            <Settings className="h-4 w-4" />
+            Payment Settings
           </TabsTrigger>
         </TabsList>
 
@@ -234,9 +301,9 @@ export default function BillingDashboard() {
         <TabsContent value="queue" className="space-y-4">
           <Card className="border border-border/60 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Offline Payment Verification Queue</CardTitle>
+              <CardTitle className="text-lg">Manual Payment Verification Queue</CardTitle>
               <CardDescription>
-                Schools that submitted bank transfer or UPI proof documents. Review proof and approve to activate their subscription immediately.
+                Review submitted bank transfer, UPI, or cash payment proofs from schools. Verify amount and reference before approving.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -249,7 +316,7 @@ export default function BillingDashboard() {
                   <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500/60 mb-3" />
                   <h3 className="font-semibold text-lg">Verification Queue Clear</h3>
                   <p className="text-muted-foreground text-sm max-w-sm mx-auto mt-1">
-                    There are currently no offline subscription payments waiting for approval.
+                    There are currently no manual payment requests awaiting Super Admin verification.
                   </p>
                 </div>
               ) : (
@@ -258,12 +325,12 @@ export default function BillingDashboard() {
                     <thead className="bg-muted/50 text-muted-foreground font-semibold border-b">
                       <tr>
                         <th className="py-3 px-4">School</th>
-                        <th className="py-3 px-4">Plan</th>
+                        <th className="py-3 px-4">Plan & Operation</th>
                         <th className="py-3 px-4">Amount</th>
-                        <th className="py-3 px-4">Payment Channel</th>
+                        <th className="py-3 px-4">Channel</th>
                         <th className="py-3 px-4">Reference / UTR</th>
-                        <th className="py-3 px-4">Proof Document</th>
-                        <th className="py-3 px-4">Date</th>
+                        <th className="py-3 px-4">Payment Date</th>
+                        <th className="py-3 px-4">Proof Slip</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -271,11 +338,12 @@ export default function BillingDashboard() {
                       {reviewQueue.map((tx) => (
                         <tr key={tx.id} className="hover:bg-muted/30 transition-colors">
                           <td className="py-3 px-4">
-                            <div className="font-semibold">{tx.school?.name ?? "Unknown School"}</div>
-                            <div className="text-xs text-muted-foreground">{tx.school?.code}</div>
+                            <div className="font-semibold">{tx.school?.name ?? "Unknown"}</div>
+                            <div className="text-xs font-mono text-muted-foreground">ID: {tx.school?.id?.slice(0, 8)}...</div>
                           </td>
-                          <td className="py-3 px-4">
-                            <span className="font-medium text-foreground">{tx.plan?.name}</span>
+                          <td className="py-3 px-4 space-y-1">
+                            <div className="font-medium text-foreground">{tx.plan?.name}</div>
+                            <div>{getOperationBadge(tx.operation)}</div>
                           </td>
                           <td className="py-3 px-4 font-bold text-foreground">
                             ₹{Number(tx.amount).toLocaleString("en-IN")}
@@ -290,10 +358,13 @@ export default function BillingDashboard() {
                               {tx.transactionReference || "None"}
                             </span>
                           </td>
+                          <td className="py-3 px-4 text-xs text-muted-foreground">
+                            {tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString() : new Date(tx.createdAt).toLocaleDateString()}
+                          </td>
                           <td className="py-3 px-4">
                             {tx.proofDocumentUrl ? (
                               <a
-                                href={tx.proofDocumentUrl}
+                                href={getImageUrl(tx.proofDocumentUrl)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline"
@@ -303,21 +374,26 @@ export default function BillingDashboard() {
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             ) : (
-                              <span className="text-xs text-muted-foreground">No doc</span>
+                              <span className="text-xs text-muted-foreground">No slip</span>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground">
-                            {new Date(tx.createdAt).toLocaleDateString()}
-                          </td>
                           <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 text-xs"
+                                onClick={() => setDetailTx(tx)}
+                              >
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                Details
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="text-rose-600 border-rose-300 hover:bg-rose-50 hover:text-rose-700 h-8 text-xs"
                                 onClick={() => handleOpenAction(tx, "reject")}
                               >
-                                <XCircle className="h-3.5 w-3.5 mr-1" />
                                 Reject
                               </Button>
                               <Button
@@ -325,8 +401,7 @@ export default function BillingDashboard() {
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"
                                 onClick={() => handleOpenAction(tx, "approve")}
                               >
-                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                Approve & Activate
+                                Approve
                               </Button>
                             </div>
                           </td>
@@ -340,20 +415,20 @@ export default function BillingDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Tab 2: All Transactions */}
+        {/* Tab 2: All Payment Requests */}
         <TabsContent value="all" className="space-y-4">
           <Card className="border border-border/60 shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-lg">All Subscription Transactions</CardTitle>
+                  <CardTitle className="text-lg">Payment Requests Ledger</CardTitle>
                   <CardDescription>
-                    Complete ledger of all online & offline payment attempts across all schools.
+                    Complete log of all manual purchase, renewal, and upgrade requests across schools.
                   </CardDescription>
                 </div>
                 {/* Search & Filter Controls */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative w-64">
+                  <div className="relative w-56">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search school or UTR..."
@@ -374,10 +449,22 @@ export default function BillingDashboard() {
                     className="h-9 px-3 text-xs rounded-md border border-input bg-background"
                   >
                     <option value="ALL">All Statuses</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="PENDING">Pending</option>
+                    <option value="PENDING">Pending Verification</option>
+                    <option value="COMPLETED">Approved</option>
                     <option value="REJECTED">Rejected</option>
-                    <option value="FAILED">Failed</option>
+                  </select>
+                  <select
+                    value={operationFilter}
+                    onChange={(e) => {
+                      setOperationFilter(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-9 px-3 text-xs rounded-md border border-input bg-background"
+                  >
+                    <option value="ALL">All Operations</option>
+                    <option value="PURCHASE">Purchase</option>
+                    <option value="RENEW">Renewal</option>
+                    <option value="UPGRADE">Upgrade</option>
                   </select>
                 </div>
               </div>
@@ -385,11 +472,11 @@ export default function BillingDashboard() {
             <CardContent>
               {loadingTx ? (
                 <div className="py-12">
-                  <Loader text="Loading transactions..." />
+                  <Loader text="Loading payment records..." />
                 </div>
               ) : transactions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  No transactions found matching your criteria.
+                  No payment records found matching your filters.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -398,12 +485,13 @@ export default function BillingDashboard() {
                       <tr>
                         <th className="py-3 px-4">Date</th>
                         <th className="py-3 px-4">School</th>
-                        <th className="py-3 px-4">Plan</th>
+                        <th className="py-3 px-4">Plan & Operation</th>
                         <th className="py-3 px-4">Amount</th>
                         <th className="py-3 px-4">Channel</th>
                         <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4">Reference</th>
+                        <th className="py-3 px-4">Reference / UTR</th>
                         <th className="py-3 px-4">Reviewed By</th>
+                        <th className="py-3 px-4 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -412,11 +500,13 @@ export default function BillingDashboard() {
                           <td className="py-3 px-4 text-xs text-muted-foreground">
                             {new Date(tx.createdAt).toLocaleDateString()}
                           </td>
-                          <td className="py-3 px-4 font-medium">
-                            {tx.school?.name ?? "Unknown"}
+                          <td className="py-3 px-4">
+                            <div className="font-medium">{tx.school?.name ?? "Unknown"}</div>
+                            <div className="text-[11px] text-muted-foreground">{tx.school?.code}</div>
                           </td>
-                          <td className="py-3 px-4 text-xs font-semibold">
-                            {tx.plan?.name}
+                          <td className="py-3 px-4 space-y-1">
+                            <div className="text-xs font-semibold">{tx.plan?.name}</div>
+                            <div>{getOperationBadge(tx.operation)}</div>
                           </td>
                           <td className="py-3 px-4 font-bold">
                             ₹{Number(tx.amount).toLocaleString("en-IN")}
@@ -428,10 +518,21 @@ export default function BillingDashboard() {
                           </td>
                           <td className="py-3 px-4">{getStatusBadge(tx.status)}</td>
                           <td className="py-3 px-4 font-mono text-xs">
-                            {tx.transactionReference || tx.gatewayOrderId || "-"}
+                            {tx.transactionReference || "—"}
                           </td>
                           <td className="py-3 px-4 text-xs text-muted-foreground">
-                            {tx.reviewedBy?.fullName ?? (tx.channel.startsWith("ONLINE") ? "Gateway Auto" : "-")}
+                            {tx.reviewedBy?.fullName ?? "—"}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 text-xs"
+                              onClick={() => setDetailTx(tx)}
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              View
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -444,7 +545,7 @@ export default function BillingDashboard() {
               {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border pt-4 mt-4">
                   <div className="text-xs text-muted-foreground">
-                    Page {meta.page} of {meta.totalPages} ({meta.total} total)
+                    Page {meta.page} of {meta.totalPages} ({meta.total} total requests)
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -469,7 +570,135 @@ export default function BillingDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Tab 3: Payment Settings */}
+        <TabsContent value="settings" className="space-y-4">
+          <PaymentSettingsTab />
+        </TabsContent>
       </Tabs>
+
+      {/* View Details Modal */}
+      {detailTx && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg shadow-2xl border border-border max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Payment Request Details</CardTitle>
+                  <CardDescription className="text-xs">
+                    Submitted on {new Date(detailTx.createdAt).toLocaleString()}
+                  </CardDescription>
+                </div>
+                {getStatusBadge(detailTx.status)}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-xl text-xs border">
+                <div>
+                  <span className="text-muted-foreground">School Name:</span>
+                  <p className="font-semibold">{detailTx.school?.name}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">School Code:</span>
+                  <p className="font-semibold">{detailTx.school?.code}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Selected Plan:</span>
+                  <p className="font-semibold">{detailTx.plan?.name}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Operation:</span>
+                  <div>{getOperationBadge(detailTx.operation)}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Amount:</span>
+                  <p className="font-bold text-base text-foreground">
+                    ₹{Number(detailTx.amount).toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Channel:</span>
+                  <p className="font-medium uppercase">{formatChannel(detailTx.channel)}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">UTR / Transaction Reference:</span>
+                  <p className="font-mono text-sm bg-background p-1.5 rounded border mt-0.5">
+                    {detailTx.transactionReference || "None"}
+                  </p>
+                </div>
+              </div>
+
+              {detailTx.reviewNotes && (
+                <div className="text-xs p-3 rounded-lg bg-muted/20 border">
+                  <span className="font-semibold text-muted-foreground">Notes / Remarks:</span>
+                  <p className="mt-1">{detailTx.reviewNotes}</p>
+                </div>
+              )}
+
+              {detailTx.rejectionReason && (
+                <div className="text-xs p-3 rounded-lg bg-rose-500/10 border border-rose-300 text-rose-700">
+                  <span className="font-semibold">Rejection Reason:</span>
+                  <p className="mt-1">{detailTx.rejectionReason}</p>
+                </div>
+              )}
+
+              {detailTx.proofDocumentUrl && (
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold">Payment Proof Receipt:</span>
+                  <div className="border rounded-lg p-2 bg-muted/10 flex items-center justify-between">
+                    <span className="text-xs flex items-center gap-1.5 text-muted-foreground">
+                      <FileText className="h-4 w-4 text-primary" />
+                      Uploaded Receipt Document
+                    </span>
+                    <a
+                      href={getImageUrl(detailTx.proofDocumentUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                    >
+                      Open Document
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between border-t pt-4">
+                <Button variant="outline" size="sm" onClick={() => setDetailTx(null)}>
+                  Close
+                </Button>
+                {detailTx.status === "PENDING" && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-rose-600 border-rose-300 hover:bg-rose-50"
+                      onClick={() => {
+                        const tx = detailTx;
+                        setDetailTx(null);
+                        handleOpenAction(tx, "reject");
+                      }}
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        const tx = detailTx;
+                        setDetailTx(null);
+                        handleOpenAction(tx, "approve");
+                      }}
+                    >
+                      Approve & Activate
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Action Dialog for Approve / Reject */}
       {selectedTx && actionType && (
@@ -485,7 +714,7 @@ export default function BillingDashboard() {
                 ) : (
                   <>
                     <XCircle className="h-5 w-5 text-rose-600" />
-                    Reject Offline Payment
+                    Reject Payment Request
                   </>
                 )}
               </CardTitle>
@@ -496,12 +725,21 @@ export default function BillingDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {actionType === "approve" ? (
-                <p className="text-xs text-muted-foreground">
-                  Approving this transaction will immediately mark this payment as completed, create an active subscription for <strong>{selectedTx.plan?.name}</strong>, and enable all plan modules for this school.
-                </p>
+                <div className="text-xs text-muted-foreground space-y-1.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                  <p className="font-semibold">Approval Policy Rule ({selectedTx.operation}):</p>
+                  {selectedTx.operation === "PURCHASE" && (
+                    <p>New annual purchase: Start date will be set to today and expiry date to 1 calendar year later.</p>
+                  )}
+                  {selectedTx.operation === "RENEW" && (
+                    <p>Renewal: If school subscription is currently active, expiry date will be extended from existing expiry. If expired, starts from today.</p>
+                  )}
+                  {selectedTx.operation === "UPGRADE" && (
+                    <p>Upgrade: Existing expiry date will remain unchanged, new plan limits and features will be unlocked immediately.</p>
+                  )}
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Please provide a reason for rejecting this payment (e.g. invalid UTR, payment not received in bank account).
+                  Please provide a reason for rejecting this payment (e.g. invalid UTR, payment amount mismatch, not received in bank statement). The school will see this reason in their history.
                 </p>
               )}
 
@@ -512,7 +750,7 @@ export default function BillingDashboard() {
                 <Input
                   placeholder={
                     actionType === "approve"
-                      ? "e.g. Verified in ICICI Bank on 16 Oct"
+                      ? "e.g. Verified in HDFC statement on 19 Oct"
                       : "e.g. UTR reference not found in bank statement"
                   }
                   value={actionNotes}
@@ -549,16 +787,14 @@ export default function BillingDashboard() {
                   {approveMutation.isPending || rejectMutation.isPending
                     ? "Processing..."
                     : actionType === "approve"
-                      ? "Confirm & Activate"
-                      : "Reject Payment"}
+                    ? "Confirm & Activate"
+                    : "Reject Payment"}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
-
-
     </div>
   );
 }

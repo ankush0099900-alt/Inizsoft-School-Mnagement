@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.middleware";
 import { tenantMiddleware } from "../../../middleware/tenant.middleware";
 import { authorize } from "../../../middleware/rbac.middleware";
+import { featureGuard } from "../../../middleware/feature.middleware";
 import { validate } from "../../../middleware/validate.middleware";
 
 import {
@@ -18,16 +19,34 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
+router.use(featureGuard("EXAMS", "EXAM_SCHEDULE"));
 
-router.get("/", getExamsController);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getExamsController,
+);
 
-router.get("/:id", getExamByIdController);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getExamByIdController,
+);
 
-router.post("/", validate(createExamSchema), createExamController);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER"),
+  validate(createExamSchema),
+  createExamController,
+);
 
-router.patch("/:id", validate(updateExamSchema), updateExamController);
+router.patch(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER"),
+  validate(updateExamSchema),
+  updateExamController,
+);
 
-router.delete("/:id", deleteExamController);
+router.delete("/:id", authorize("SCHOOL_ADMIN"), deleteExamController);
 
 export default router;

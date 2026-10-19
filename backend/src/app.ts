@@ -25,7 +25,10 @@ import analyticsRoutes from "./modules/super-admin/analytics/analytics.routes";
 import notificationRoutes from "./modules/super-admin/notifications/routes/notification.routes";
 import auditLogRoutes from "./modules/super-admin/audit-logs/audit-logs.routes";
 import settingsRoutes from "./modules/super-admin/settings/settings.routes";
+import superAdminBillingRoutes from "./modules/super-admin/billing/billing.routes";
+import manualPaymentRoutes from "./modules/billing/manual-payment.routes";
 
+import schoolBillingRoutes from "./modules/school/billing/school-billing.routes";
 import schoolDashboardRoutes from "./modules/school/dashboard/school-dashboard.routes";
 import academicYearRoutes from "./modules/school/academic-years/academic-years.routes";
 import schoolClassRoutes from "./modules/school/classes/classes.routes";
@@ -121,10 +124,7 @@ app.use(
  * Health / Root
  */
 app.get("/", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "School ERP API Running 🚀",
-  });
+  res.status(200).json({ success: true, message: "School ERP API Running 🚀" });
 });
 
 app.get("/healthz", (_req, res) => {
@@ -139,30 +139,6 @@ app.get("/readyz", (_req, res) => {
     success: true,
     message: "API is ready",
   });
-});
-
-app.get("/api/seed", async (_req, res) => {
-  try {
-    const { exec } = await import("child_process");
-    exec("npx tsx prisma/seed.ts", (err, stdout, stderr) => {
-      if (err) {
-        console.error("Seed error:", err);
-        return res.status(500).json({ success: false, error: err.message, stderr });
-      }
-      return res.status(200).json({
-        success: true,
-        message: "Database seeded successfully! You can now log in.",
-        credentials: {
-          superAdmin: { email: "admin@erp.com", password: "Password@123" },
-          schoolAdmin: { email: "admin@school.test", password: "Password@123" },
-          teacher: { email: "amit@school.test", password: "Password@123" },
-          student: { email: "aarav.student@school.test", password: "Password@123" },
-        },
-      });
-    });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
-  }
 });
 
 /**
@@ -195,6 +171,8 @@ app.use("/api/super-admin/notifications", notificationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/super-admin/audit-logs", auditLogRoutes);
 app.use("/api/super-admin/settings", settingsRoutes);
+app.use("/api/super-admin/billing", superAdminBillingRoutes);
+app.use("/api", manualPaymentRoutes);
 
 /**
  * Maintenance Mode Barrier:
@@ -205,6 +183,7 @@ app.use(maintenanceMiddleware);
 /**
  * School APIs
  */
+app.use("/api/school/billing", schoolBillingRoutes);
 app.use("/api/school/dashboard", schoolDashboardRoutes);
 app.use("/api/school/academic-years", academicYearRoutes);
 app.use("/api/school/classes", schoolClassRoutes);

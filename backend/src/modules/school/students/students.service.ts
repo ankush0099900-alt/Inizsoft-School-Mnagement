@@ -468,11 +468,7 @@ export const getStudents = async (
     isDeleted: false,
     user: {
       isDeleted: false,
-      ...(status
-        ? {
-            status,
-          }
-        : {}),
+      ...(status ? { status } : {}),
     },
   };
 
@@ -828,7 +824,12 @@ export const updateStudent = async (
   const parentFullName = data.parentFullName?.trim();
   const parentEmail = data.parentEmail?.trim().toLowerCase();
 
-  if (parentFullName || parentEmail || data.parentOccupation || data.parentPhone) {
+  if (
+    parentFullName ||
+    parentEmail ||
+    data.parentOccupation ||
+    data.parentPhone
+  ) {
     if (existingStudent.parentId) {
       const currentParent = await prisma.parent.findUnique({
         where: { id: existingStudent.parentId },

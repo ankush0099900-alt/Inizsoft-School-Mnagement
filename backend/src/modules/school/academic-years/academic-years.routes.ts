@@ -28,22 +28,36 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", getAcademicYears);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getAcademicYears,
+);
 
-router.get("/current", getCurrentAcademicYear);
+router.get(
+  "/current",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getCurrentAcademicYear,
+);
 
 router.get(
   "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
   validateParams(academicYearParamsSchema),
   getAcademicYearById,
 );
 
-router.post("/", validate(createAcademicYearSchema), createAcademicYear);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN"),
+  validate(createAcademicYearSchema),
+  createAcademicYear,
+);
 
 router.patch(
   "/:id",
+  authorize("SCHOOL_ADMIN"),
   validateParams(academicYearParamsSchema),
   validate(updateAcademicYearSchema),
   updateAcademicYear,
@@ -51,12 +65,14 @@ router.patch(
 
 router.patch(
   "/:id/set-current",
+  authorize("SCHOOL_ADMIN"),
   validateParams(academicYearParamsSchema),
   setCurrentAcademicYear,
 );
 
 router.delete(
   "/:id",
+  authorize("SCHOOL_ADMIN"),
   validateParams(academicYearParamsSchema),
   deleteAcademicYear,
 );

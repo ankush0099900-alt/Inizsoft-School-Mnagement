@@ -19,16 +19,15 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", getStaffController);
+router.get("/", authorize("SCHOOL_ADMIN", "TEACHER"), getStaffController);
 
-router.get("/:id", getStaffByIdController);
+router.get("/:id", authorize("SCHOOL_ADMIN", "TEACHER"), getStaffByIdController);
 
-router.post("/", validate(createStaffSchema), createStaffController);
+router.post("/", authorize("SCHOOL_ADMIN"), validate(createStaffSchema), createStaffController);
 
-router.patch("/:id", validate(updateStaffSchema), updateStaffController);
+router.patch("/:id", authorize("SCHOOL_ADMIN"), validate(updateStaffSchema), updateStaffController);
 
-router.delete("/:id", deleteStaffController);
+router.delete("/:id", authorize("SCHOOL_ADMIN"), deleteStaffController);
 
 export default router;

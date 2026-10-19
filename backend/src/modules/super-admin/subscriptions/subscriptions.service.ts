@@ -49,6 +49,9 @@ export const createSubscriptionService = async (data: any) => {
     where: {
       id: data.planId,
     },
+    include: {
+      modules: true,
+    },
   });
 
   if (!plan) {
@@ -59,40 +62,114 @@ export const createSubscriptionService = async (data: any) => {
     throw new ApiError(400, "Cannot create subscription with inactive plan");
   }
 
-  const existing = await prisma.subscription.findFirst({
+  // Check for currently active/running subscription for this school
+  const activeExisting = await prisma.subscription.findFirst({
     where: {
       schoolId: data.schoolId,
+      status: {
+        in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+      },
+      endDate: {
+        gte: new Date(),
+      },
     },
   });
 
-  if (existing) {
-    throw new ApiError(409, "Subscription already exists for this school");
+  if (activeExisting) {
+    throw new ApiError(
+      409,
+      "An active subscription already exists for this school. Please renew or upgrade the existing subscription instead.",
+    );
   }
 
-  const startDate = new Date(data.startDate);
-  const endDate = new Date(data.endDate);
+  const startDate = data.startDate ? new Date(data.startDate) : new Date();
+  let endDate: Date;
+
+  if (data.endDate) {
+    endDate = new Date(data.endDate);
+  } else {
+    endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (plan.durationInDays || 365));
+  }
 
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    throw new ApiError(400, "Invalid subscription dates");
+    throw new ApiError(400, "Invalid subscription dates provided");
   }
 
   if (startDate >= endDate) {
     throw new ApiError(400, "End date must be greater than start date");
   }
 
-  return prisma.subscription.create({
-    data: {
-      schoolId: data.schoolId,
-      planId: data.planId,
-      startDate,
-      endDate,
-      status: data.status ?? SubscriptionStatus.TRIAL,
-      amount: data.amount ?? 0,
-      discount: data.discount ?? 0,
-      tax: data.tax ?? 0,
-      finalAmount: data.finalAmount ?? 0,
-    },
-    include: subscriptionInclude,
+  const amount =
+    data.amount !== undefined && data.amount !== "" && Number(data.amount) >= 0
+      ? Number(data.amount)
+      : Number(plan.price);
+  const discount = Number(data.discount || 0);
+  const tax = Number(data.tax || 0);
+  const finalAmount =
+    data.finalAmount !== undefined && data.finalAmount !== ""
+      ? Number(data.finalAmount)
+      : amount - discount + tax;
+
+  const subscriptionStatus = data.status ?? SubscriptionStatus.ACTIVE;
+
+  return prisma.$transaction(async (tx) => {
+    // 1. Create Subscription
+    const subscription = await tx.subscription.create({
+      data: {
+        schoolId: data.schoolId,
+        planId: data.planId,
+        startDate,
+        endDate,
+        status: subscriptionStatus,
+        amount,
+        discount,
+        tax,
+        finalAmount,
+      },
+      include: subscriptionInclude,
+    });
+
+    // 2. Update School status if ACTIVE or TRIAL
+    if (
+      subscriptionStatus === SubscriptionStatus.ACTIVE ||
+      subscriptionStatus === SubscriptionStatus.TRIAL
+    ) {
+      await tx.school.update({
+        where: { id: data.schoolId },
+        data: {
+          status:
+            subscriptionStatus === SubscriptionStatus.ACTIVE
+              ? "ACTIVE"
+              : "TRIAL",
+          isActive: true,
+        },
+      });
+    }
+
+    // 3. Sync plan modules to school modules
+    if (plan.modules && plan.modules.length > 0) {
+      for (const pm of plan.modules) {
+        await tx.schoolModule.upsert({
+          where: {
+            schoolId_moduleId: {
+              schoolId: data.schoolId,
+              moduleId: pm.moduleId,
+            },
+          },
+          create: {
+            schoolId: data.schoolId,
+            moduleId: pm.moduleId,
+            enabled: true,
+          },
+          update: {
+            enabled: true,
+          },
+        });
+      }
+    }
+
+    return subscription;
   });
 };
 

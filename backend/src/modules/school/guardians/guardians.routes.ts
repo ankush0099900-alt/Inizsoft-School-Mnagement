@@ -22,16 +22,15 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", getGuardians);
+router.get("/", authorize("SCHOOL_ADMIN", "TEACHER"), getGuardians);
 
-router.get("/:id", validate(guardianParamsSchema), getGuardianById);
+router.get("/:id", authorize("SCHOOL_ADMIN", "TEACHER"), validate(guardianParamsSchema), getGuardianById);
 
-router.post("/", validate(createGuardianSchema), createGuardian);
+router.post("/", authorize("SCHOOL_ADMIN"), validate(createGuardianSchema), createGuardian);
 
-router.patch("/:id", validate(updateGuardianSchema), updateGuardian);
+router.patch("/:id", authorize("SCHOOL_ADMIN"), validate(updateGuardianSchema), updateGuardian);
 
-router.delete("/:id", validate(guardianParamsSchema), deleteGuardian);
+router.delete("/:id", authorize("SCHOOL_ADMIN"), validate(guardianParamsSchema), deleteGuardian);
 
 export default router;

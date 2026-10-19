@@ -16,7 +16,7 @@ import {
 
 import { authenticate } from "../../../middleware/auth.middleware";
 import { authorize } from "../../../middleware/rbac.middleware";
-import { validate } from "../../../middleware/validate.middleware";
+import { validate, validateParams } from "../../../middleware/validate.middleware";
 import { auditMiddleware } from "../../../utils/audit";
 
 import {
@@ -41,45 +41,49 @@ router.post(
   auditMiddleware("PLAN", "CREATE", "SUBSCRIPTION_PLAN"),
   createPlan,
 );
-router.get("/:id", validate(planIdSchema), getPlanById);
+router.get("/:id", validateParams(planIdSchema), getPlanById);
 router.put(
   "/:id",
-  validate(planIdSchema.merge(updatePlanSchema)),
+  validateParams(planIdSchema),
+  validate(updatePlanSchema),
   auditMiddleware("PLAN", "UPDATE", "SUBSCRIPTION_PLAN"),
   updatePlan,
 );
 router.patch(
   "/:id/status",
-  validate(planIdSchema.merge(updatePlanStatusSchema)),
+  validateParams(planIdSchema),
+  validate(updatePlanStatusSchema),
   auditMiddleware("PLAN", "STATUS", "SUBSCRIPTION_PLAN"),
   updatePlanStatus,
 );
 router.delete(
   "/:id",
-  validate(planIdSchema),
+  validateParams(planIdSchema),
   auditMiddleware("PLAN", "DELETE", "SUBSCRIPTION_PLAN"),
   deletePlan,
 );
 
-router.get("/:id/modules", validate(planIdSchema), getPlanModules);
+router.get("/:id/modules", validateParams(planIdSchema), getPlanModules);
 
 router.post(
   "/:id/modules",
-  validate(planIdSchema.merge(assignPlanModuleSchema)),
+  validateParams(planIdSchema),
+  validate(assignPlanModuleSchema),
   auditMiddleware("PLAN_MODULE", "ASSIGN", "PLAN_MODULE"),
   assignPlanModule,
 );
 
 router.put(
   "/:id/modules",
-  validate(planIdSchema.merge(bulkAssignPlanModulesSchema)),
+  validateParams(planIdSchema),
+  validate(bulkAssignPlanModulesSchema),
   auditMiddleware("PLAN_MODULE", "BULK_ASSIGN", "PLAN_MODULE"),
   bulkAssignPlanModules,
 );
 
 router.delete(
   "/:id/modules/:moduleId",
-  validate(planModuleParamsSchema),
+  validateParams(planModuleParamsSchema),
   auditMiddleware("PLAN_MODULE", "REMOVE", "PLAN_MODULE"),
   removePlanModule,
 );

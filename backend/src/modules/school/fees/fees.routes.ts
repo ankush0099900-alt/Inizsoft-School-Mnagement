@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.middleware";
 import { tenantMiddleware } from "../../../middleware/tenant.middleware";
 import { authorize } from "../../../middleware/rbac.middleware";
+import { featureGuard } from "../../../middleware/feature.middleware";
 import { validate } from "../../../middleware/validate.middleware";
 
 import {
@@ -18,16 +19,34 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
+router.use(featureGuard("FEES", "FEE_STRUCTURES"));
 
-router.get("/", getFeesController);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getFeesController,
+);
 
-router.get("/:id", getFeeByIdController);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getFeeByIdController,
+);
 
-router.post("/", validate(createFeeSchema), createFeeController);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN"),
+  validate(createFeeSchema),
+  createFeeController,
+);
 
-router.patch("/:id", validate(updateFeeSchema), updateFeeController);
+router.patch(
+  "/:id",
+  authorize("SCHOOL_ADMIN"),
+  validate(updateFeeSchema),
+  updateFeeController,
+);
 
-router.delete("/:id", deleteFeeController);
+router.delete("/:id", authorize("SCHOOL_ADMIN"), deleteFeeController);
 
 export default router;

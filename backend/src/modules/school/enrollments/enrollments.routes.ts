@@ -28,26 +28,28 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", getEnrollmentsController);
+router.get("/", authorize("SCHOOL_ADMIN", "TEACHER"), getEnrollmentsController);
 
 router.post(
   "/promote",
+  authorize("SCHOOL_ADMIN"),
   validate(promoteStudentsSchema),
   promoteStudentsController,
 );
 
 router.get(
   "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER"),
   validateParams(enrollmentParamsSchema),
   getEnrollmentByIdController,
 );
 
-router.post("/", validate(createEnrollmentSchema), createEnrollmentController);
+router.post("/", authorize("SCHOOL_ADMIN"), validate(createEnrollmentSchema), createEnrollmentController);
 
 router.patch(
   "/:id",
+  authorize("SCHOOL_ADMIN"),
   validateParams(enrollmentParamsSchema),
   validate(updateEnrollmentSchema),
   updateEnrollmentController,
@@ -55,6 +57,7 @@ router.patch(
 
 router.delete(
   "/:id",
+  authorize("SCHOOL_ADMIN"),
   validateParams(enrollmentParamsSchema),
   deleteEnrollmentController,
 );

@@ -1,5 +1,5 @@
-import SchoolBillingPortal from "@/features/school-admin/billing/components/SchoolBillingPortal";
+import SchoolBillingPortal from "@/features/school/billing/components/SchoolBillingPortal";
 
-export default function SchoolSubscriptionPage() {
+export default function SubscriptionPage() {
   return <SchoolBillingPortal />;
 }

@@ -31,6 +31,13 @@ interface UpdateTeacherInput {
   subjectIds?: string[];
 }
 
+interface GetTeachersPagination {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+// throw error
 const getTeacherOrThrow = async (schoolId: string, teacherId: string) => {
   const teacher = await prisma.teacher.findFirst({
     where: {
@@ -39,7 +46,7 @@ const getTeacherOrThrow = async (schoolId: string, teacherId: string) => {
     },
     include: {
       user: true,
-    },
+    },    
   });
 
   if (!teacher) {
@@ -71,59 +78,115 @@ const validateSubjects = async (schoolId: string, subjectIds: string[]) => {
   }
 };
 
-export const getTeachersService = async (schoolId: string) => {
-  return prisma.teacher.findMany({
-    where: {
-      schoolId,
-    },
-    orderBy: {
-      employeeId: "asc",
-    },
-    select: {
-      id: true,
-      schoolId: true,
-      userId: true,
-      employeeId: true,
-      qualification: true,
-      experienceYears: true,
-      designation: true,
-      address: true,
-      joiningDate: true,
-      createdAt: true,
-      updatedAt: true,
+export const getTeachersService = async (
+  schoolId: string,
+  pagination: GetTeachersPagination = {},
+) => {
+  const page = Math.max(Number(pagination.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(pagination.limit) || 20, 1), 100);
 
-      user: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
-          avatar: true,
-          status: true,
-          role: true,
-          lastLoginAt: true,
-          createdAt: true,
+  const search = pagination.search?.trim();
+
+  const where = {
+    schoolId,
+    ...(search
+      ? {
+          OR: [
+            {
+              employeeId: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              user: {
+                fullName: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+            },
+            {
+              user: {
+                email: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [teachers, total] = await prisma.$transaction([
+    prisma.teacher.findMany({
+      where,
+      orderBy: {
+        employeeId: "asc",
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        schoolId: true,
+        userId: true,
+        employeeId: true,
+        qualification: true,
+        experienceYears: true,
+        designation: true,
+        address: true,
+        joiningDate: true,
+        createdAt: true,
+        updatedAt: true,
+
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            avatar: true,
+            status: true,
+            role: true,
+            lastLoginAt: true,
+            createdAt: true,
+          },
+        },
+
+        subjects: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        },
+
+        _count: {
+          select: {
+            timetables: true,
+          },
         },
       },
+    }),
 
-      subjects: {
-        select: {
-          id: true,
-          name: true,
-          code: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
-      },
+    prisma.teacher.count({
+      where,
+    }),
+  ]);
 
-      _count: {
-        select: {
-          timetables: true,
-        },
-      },
+  return {
+    items: teachers,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-  });
+  };
 };
 
 export const getTeacherByIdService = async (

@@ -2,7 +2,7 @@ import { RoleEnum } from "@prisma/client";
 import { prisma } from "../../../config/prisma";
 import { ApiError } from "../../../utils/ApiError";
 import { generateSchoolData } from "../../../utils/generateSchool";
-import bcrypt from "bcrypt";
+import { hashPassword } from "../../../utils/bcrypt";
 
 interface CreateSchoolInput {
   name: string;
@@ -105,7 +105,7 @@ export const createSchoolService = async (
 
   const { code, slug } = await generateSchoolData(data.name);
 
-  const logo = file ? `/public/uploads/${file.filename}` : data.logo;
+  const logo = file ? `/uploads/${file.filename}` : data.logo;
 
   return prisma.$transaction(async (tx) => {
     const school = await tx.school.create({
@@ -131,10 +131,7 @@ export const createSchoolService = async (
     let owner = null;
 
     if (data.ownerEmail && data.ownerPassword) {
-      const hashedPassword = await bcrypt.hash(
-        data.ownerPassword,
-        Number(process.env.BCRYPT_ROUNDS ?? 12),
-      );
+      const hashedPassword = await hashPassword(data.ownerPassword);
 
       owner = await tx.user.create({
         data: {
@@ -414,7 +411,7 @@ export const updateSchoolService = async (
     }
   }
 
-  const logo = file ? `/public/uploads/${file.filename}` : undefined;
+  const logo = file ? `/uploads/${file.filename}` : undefined;
 
   return prisma.school.update({
     where: {
@@ -627,10 +624,7 @@ export const resetSchoolAdminPasswordService = async (
     throw new ApiError(400, "Invalid school admin");
   }
 
-  const hashedPassword = await bcrypt.hash(
-    newPassword,
-    Number(process.env.BCRYPT_ROUNDS ?? 12),
-  );
+  const hashedPassword = await hashPassword(newPassword);
 
   return prisma.user.update({
     where: {

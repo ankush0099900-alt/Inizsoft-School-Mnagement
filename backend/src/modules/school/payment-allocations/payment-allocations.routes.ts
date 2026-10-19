@@ -18,18 +18,30 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", listPaymentAllocations);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "PARENT", "STUDENT"),
+  listPaymentAllocations,
+);
 
-router.get("/:id", getPaymentAllocation);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "PARENT", "STUDENT"),
+  getPaymentAllocation,
+);
 
 router.post(
   "/",
+  authorize("SCHOOL_ADMIN"),
   validate(createPaymentAllocationSchema),
   createPaymentAllocationController,
 );
 
-router.delete("/:id", deletePaymentAllocationController);
+router.delete(
+  "/:id",
+  authorize("SCHOOL_ADMIN"),
+  deletePaymentAllocationController,
+);
 
 export default router;

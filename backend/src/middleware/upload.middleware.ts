@@ -10,6 +10,7 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
+  "application/pdf",
 ]);
 
 const ALLOWED_EXTENSIONS = new Set([
@@ -17,6 +18,7 @@ const ALLOWED_EXTENSIONS = new Set([
   ".jpeg",
   ".png",
   ".webp",
+  ".pdf",
 ]);
 
 const validateImage = (
@@ -36,7 +38,7 @@ const validateImage = (
   }
 
   return cb(
-    new Error("Only valid image formats (JPG, JPEG, PNG, WEBP) are allowed"),
+    new Error("Only valid image formats (JPG, JPEG, PNG, WEBP) and PDF files are allowed"),
   );
 };
 

@@ -34,16 +34,62 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
 
-router.get("/", getClassesController);
-router.get("/:classId/sections", validateParams(classIdParamsSchema), getSectionsController,);
-router.post("/:classId/sections", validateParams(classIdParamsSchema), validate(createSectionSchema), createSectionController,);
-router.patch("/:classId/sections/:sectionId", validateParams(sectionParamsSchema), validate(updateSectionSchema), updateSectionController,);
-router.delete("/:classId/sections/:sectionId", validateParams(sectionParamsSchema), deleteSectionController,);
-router.get("/:id", validateParams(classParamsSchema), getClassByIdController);
-router.post("/", validate(createClassSchema), createClassController);
-router.patch("/:id", validateParams(classParamsSchema), validate(updateClassSchema), updateClassController, );
-router.delete("/:id", validateParams(classParamsSchema), deleteClassController);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  getClassesController,
+);
+router.get(
+  "/:classId/sections",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  validateParams(classIdParamsSchema),
+  getSectionsController,
+);
+router.post(
+  "/:classId/sections",
+  authorize("SCHOOL_ADMIN"),
+  validateParams(classIdParamsSchema),
+  validate(createSectionSchema),
+  createSectionController,
+);
+router.patch(
+  "/:classId/sections/:sectionId",
+  authorize("SCHOOL_ADMIN"),
+  validateParams(sectionParamsSchema),
+  validate(updateSectionSchema),
+  updateSectionController,
+);
+router.delete(
+  "/:classId/sections/:sectionId",
+  authorize("SCHOOL_ADMIN"),
+  validateParams(sectionParamsSchema),
+  deleteSectionController,
+);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "TEACHER", "STUDENT", "PARENT"),
+  validateParams(classParamsSchema),
+  getClassByIdController,
+);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN"),
+  validate(createClassSchema),
+  createClassController,
+);
+router.patch(
+  "/:id",
+  authorize("SCHOOL_ADMIN"),
+  validateParams(classParamsSchema),
+  validate(updateClassSchema),
+  updateClassController,
+);
+router.delete(
+  "/:id",
+  authorize("SCHOOL_ADMIN"),
+  validateParams(classParamsSchema),
+  deleteClassController,
+);
 
 export default router;

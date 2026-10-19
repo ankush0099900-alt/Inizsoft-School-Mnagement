@@ -26,9 +26,9 @@ const getParam = (value: string | string[] | undefined): string => {
   return value;
 };
 
+
 export const getTeachers = async (req: Request, res: Response) => {
   const schoolId = getSchoolId(req);
-
   const data = await getTeachersService(schoolId);
 
   return res.status(200).json({
@@ -37,6 +37,8 @@ export const getTeachers = async (req: Request, res: Response) => {
     data,
   });
 };
+
+
 
 export const getTeacherById = async (req: Request, res: Response) => {
   const schoolId = getSchoolId(req);

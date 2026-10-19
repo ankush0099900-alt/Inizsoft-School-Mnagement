@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.middleware";
 import { tenantMiddleware } from "../../../middleware/tenant.middleware";
 import { authorize } from "../../../middleware/rbac.middleware";
+import { featureGuard } from "../../../middleware/feature.middleware";
 import { validate } from "../../../middleware/validate.middleware";
 
 import { createPaymentSchema, reversePaymentSchema } from "./payments.schema";
@@ -18,20 +19,34 @@ const router = Router();
 
 router.use(authenticate);
 router.use(tenantMiddleware);
-router.use(authorize("SCHOOL_ADMIN"));
+router.use(featureGuard("PAYMENTS", "FEES", "FINANCE"));
 
-router.get("/", listPayments);
+router.get(
+  "/",
+  authorize("SCHOOL_ADMIN", "PARENT", "STUDENT"),
+  listPayments,
+);
 
-router.get("/:id", getPayment);
+router.get(
+  "/:id",
+  authorize("SCHOOL_ADMIN", "PARENT", "STUDENT"),
+  getPayment,
+);
 
-router.post("/", validate(createPaymentSchema), createPaymentController);
+router.post(
+  "/",
+  authorize("SCHOOL_ADMIN"),
+  validate(createPaymentSchema),
+  createPaymentController,
+);
 
 router.patch(
   "/:id/reverse",
+  authorize("SCHOOL_ADMIN"),
   validate(reversePaymentSchema),
   reversePaymentController,
 );
 
-router.patch("/:id/cancel", cancelPaymentController);
+router.patch("/:id/cancel", authorize("SCHOOL_ADMIN"), cancelPaymentController);
 
 export default router;
